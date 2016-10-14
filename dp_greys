@@ -31,6 +31,7 @@ EOF
 
 
 DEST_DEFAULT=/mnt/dpredux/DP
+JPEG_QUALITY_DEFAULT=65
 
 usage() {
    echo "Usage: $cmd [options] TIFF_DIR"
@@ -43,7 +44,8 @@ usage() {
    echo "Options"
    echo ""
    echo " -h         Print help"
-   echo " -d         Output directory; YYYY_MM, or abs. or rel. path"
+   echo " -d=VAL     Output directory; YYYY_MM, or abs. or rel. path"
+   echo " -q=NUM     Quality of JPEG image: 1-100 (default: $JPEG_QUALITY_DEFAULT)"
    echo ""
 }
 
@@ -80,7 +82,7 @@ get_yyyy_mm() {
 }
 
 ### OPTIONS
-while getopts "hd:" opt; do
+while getopts "hd:q:" opt; do
     case $opt in
         h)
             usage
@@ -89,6 +91,9 @@ while getopts "hd:" opt; do
             ;;
         d)
             OUTDIR=$OPTARG
+            ;;
+        q)
+            JPEG_QUALITY=$OPTARG
             ;;
         \?)
             echo "ERROR Invalid option: -$OPTARG" >&2
@@ -121,6 +126,16 @@ else
     echo "Invalid DAILY_PENN_DEST directory" >&2
     usage
     exit 1
+fi
+
+JPEG_QUALITY=${JPEG_QUALITY:-$JPEG_QUALITY_DEFAULT}
+# JPEG_QUALITY must be a number between 1 and 100
+if [[ "$JPEG_QUALITY" =~ ^[0-9]{1,3}$ && "$JPEG_QUALITY" -gt 0 && $JPEG_QUALITY -le 100 ]]; then
+  echo "Using JPEG_QUALITY: ${JPEG_QUALITY}%"
+else
+  echo "JPEG_QUAlITY must be a number from 1-100" >&2
+  usage
+  exit 1
 fi
 
 if [ -n "$OUTDIR" ]; then
@@ -221,7 +236,7 @@ do
 
       # finally, convert the grayscale image to JPEG
       echo "  Create JPEG: $gray -> $jpg"
-      convert "$gray" -quality 100% "$jpg"
+      convert "$gray" -quality ${JPEG_QUALITY}% "$jpg"
   else
       echo "   Skipping newer file: $gray"
   fi
